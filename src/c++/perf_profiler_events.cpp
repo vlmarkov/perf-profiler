@@ -1,5 +1,7 @@
 #include "perf_profiler_events.hpp"
 
+#include <iostream>
+
 #include <sys/wait.h>
 
 
@@ -22,7 +24,7 @@ void PerfProfilerEvents::run(int argc, char **argv)
     switch (childPid = ::fork())
     {
         case -1:
-            throw std::string("fork() failed");
+            throw std::string("fork() failed"); // TODO: class Exception
 
         case 0:
             PerfProfilerEvents::executeChild_(argc, argv);
@@ -45,19 +47,17 @@ void PerfProfilerEvents::executeChild_(int argc, char **argv)
 
 void PerfProfilerEvents::executeParent_(const pid_t childPid)
 {
-    int fd = PerfEvent::open(this->pe_, childPid, -1, -1, 0);
-  
-    PerfEvent::start(fd, true);
-
     int status = 0;
+    auto fd    = PerfEvent::open(this->pe_, childPid, -1, -1, 0);
+
+    PerfEvent::start(fd, true);
 
     while (true)
     {
         auto waitPid = ::waitpid(childPid, &status, WNOHANG | WUNTRACED | WCONTINUED);
 
         if (waitPid == -1)
-            throw(std::string("waitpid(), error"));
-
+            throw(std::string("waitpid(), error")); // TODO: class Exception
 
         if (waitPid == 0)
         {
@@ -68,16 +68,17 @@ void PerfProfilerEvents::executeParent_(const pid_t childPid)
             // Child ended
             if (WIFEXITED(status))
             {
-                fprintf(stderr, "<%s> Child %d ended normally\n", __FUNCTION__, childPid);
+                std::cout << "Child " << childPid << "  ended normally" << std::endl;
             }
             else if (WIFSIGNALED(status))
             {
-                fprintf(stderr, "<%s> Child %d ended because of an uncaught signal\n", __FUNCTION__, childPid);
+                std::cerr << "Child " << childPid << " ended because of an uncaught signal" << std::endl;
             }
             else if (WIFSTOPPED(status))
             {
-                fprintf(stderr, "<%s> Child %d has stopped\n", __FUNCTION__, childPid);
+                std::cerr << "Child " << childPid << " %d has stopped" << std::endl;
             }
+
             break;
         }
     }

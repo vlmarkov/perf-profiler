@@ -4,15 +4,6 @@
 #include "perf_profiler.hpp"
 
 
-typedef struct
-{
-    struct perf_event_header header;
-    uint64_t                 ip;
-    uint32_t                 pid;
-    uint32_t                 tid;
-} perf_record_sample_t;
-
-
 class PerfProfilerSampling : public IPerfProfiler
 {
     public:
@@ -25,10 +16,8 @@ class PerfProfilerSampling : public IPerfProfiler
         void executeChild_(int argc, char **argv);
         void executeParent_(const pid_t childPid);
 
-        void ringBufferMetadataPrint_(const struct perf_event_mmap_page *mpage);
-        void ringBufferCopyGet_(const struct perf_event_mmap_page *mpage, const size_t bytes, void *dest);
-        void ringBufferDataPrint_(const struct perf_event_mmap_page *mpage);
-        void samplePrint_(const void *buffer);
+        void pagePrint_(const PerfEvent::RecordPage& page);
+        void samplePrint_(const PerfEvent::RecordSample& sample);
 
         struct perf_event_attr pe_;
 };

@@ -1,12 +1,14 @@
 #include "perf_profiler_sampling.hpp"
 
+#include <iostream>
+
 #include <sys/wait.h>
 
 
 PerfProfilerSampling::PerfProfilerSampling(uint32_t samplePeriod)
 {
     memset(&(this->pe_), 0, sizeof(struct perf_event_attr));
-    
+
     this->pe_.type           = PERF_TYPE_SOFTWARE;
     this->pe_.config         = PERF_COUNT_SW_TASK_CLOCK;
     this->pe_.size           = sizeof(struct perf_event_attr);
@@ -26,7 +28,7 @@ void PerfProfilerSampling::run(int argc, char **argv)
     switch (childPid = ::fork())
     {
         case -1:
-            throw std::string("fork() failed");
+            throw std::string("fork() failed"); // TODO: class Exception
 
         case 0:
             executeChild_(argc, argv);
@@ -49,136 +51,89 @@ void PerfProfilerSampling::executeChild_(int argc, char **argv)
 
 void PerfProfilerSampling::executeParent_(const pid_t childPid)
 {
-    struct perf_event_mmap_page *mpage = nullptr;
-
-    int fd = PerfEvent::open(this->pe_, childPid, -1, -1, 0);
-
-    PerfEvent::mmap(this->pe_, fd, reinterpret_cast<void**>(&mpage));
-  
-    PerfEvent::start(fd, true);
-
     int status = 0;
-    size_t prev_head = 0;
-    uint64_t samplesCnt = 0;
+
+    auto samplesCnt = 0;
+    auto fd         = PerfEvent::open(this->pe_, childPid, -1, -1, 0);
+    auto ringBuffer = PerfEvent::RingBuffer(fd);
+
+    PerfEvent::start(fd, true);
 
     while (true)
     {
         pid_t waitPid = ::waitpid(childPid, &status, WNOHANG | WUNTRACED | WCONTINUED);
 
         if (waitPid == -1)
-            throw(std::string("waitpid(), error"));
+            throw(std::string("waitpid(), error")); // TODO: class Exception
 
-        if (waitPid == 0)
+        if (waitPid == 0) // Child still running 
         {
-            // Child still running    
-            if ((mpage->data_head != 0) && (mpage->data_head != prev_head))
+            if (ringBuffer.hasData())
             {
-                prev_head = mpage->data_head;
+                auto page   = ringBuffer.pageGet();
+                auto sample = ringBuffer.sampleGet();
 
-                PerfProfilerSampling::ringBufferMetadataPrint_(mpage);
-                PerfProfilerSampling::ringBufferDataPrint_(mpage);
+                PerfProfilerSampling::pagePrint_(page);
+                PerfProfilerSampling::samplePrint_(sample);
+
                 samplesCnt++;
             }
         }
-        else if (waitPid == childPid)
+        else if (waitPid == childPid) // Child ended
         {
-            // Child ended
             if (WIFEXITED(status))
             {
-                printf("Samples gather: %d\n", (int)samplesCnt);
-                printf("Child %d ended normally\n", childPid);
+                std::cout << "Samples gather: " << samplesCnt << std::endl;
+                std::cout << "Child " << childPid << " ended normally" << std::endl;
             }
             else if (WIFSIGNALED(status))
             {
-                fprintf(stderr, "<%s> Child %d ended because of an uncaught signal\n", __FUNCTION__, childPid);
+                std::cerr << "Child " << childPid << " ended because of an uncaught signal" << std::endl;
             }
             else if (WIFSTOPPED(status))
             {
-                fprintf(stderr, "<%s> Child %d has stopped\n", __FUNCTION__, childPid);
+                std::cerr << "Child " << childPid << " %d has stopped" << std::endl;
             }
-            break;
+
+            break; // Exit point
         }
     }
 
     PerfEvent::stop(fd, true);
 
     PerfEvent::close(fd);
-
-    PerfEvent::unmmap(reinterpret_cast<void*>(mpage));
 }
 
-void PerfProfilerSampling::ringBufferMetadataPrint_(const struct perf_event_mmap_page *mpage)
+void PerfProfilerSampling::pagePrint_(const PerfEvent::RecordPage& page)
 {
-    if (mpage == nullptr)
-        throw std::string("Error");
-
-    printf("The first metadata mmap page:\n");
-    printf("\tversion        : %u\n",   mpage->version);
-    printf("\tcompat version : %u\n",   mpage->compat_version);
-    printf("\tlock           : %u\n",   mpage->lock);
-    printf("\tindex          : %u\n",   mpage->index);
-    printf("\toffset         : %llu\n", mpage->offset);
-    printf("\ttime enabled   : %llu\n", mpage->time_enabled);
-    printf("\ttime running   : %llu\n", mpage->time_running);
-    printf("\tdata head      : %llu\n", mpage->data_head);
-    printf("\tdata tail      : %llu\n", mpage->data_tail);
-    printf("\tdata offset    : %llu\n", mpage->data_offset);
-    printf("\tdata size     :  %llu\n", mpage->data_size);
-    printf("\n");
+    std::cout << "The first metadata mmap page:"                    << std::endl;
+    std::cout << "\tversion        : " << page.mpage.version        << std::endl;
+    std::cout << "\tcompat version : " << page.mpage.compat_version << std::endl;
+    std::cout << "\tlock           : " << page.mpage.lock           << std::endl;
+    std::cout << "\tindex          : " << page.mpage.index          << std::endl;
+    std::cout << "\toffset         : " << page.mpage.offset         << std::endl;
+    std::cout << "\ttime enabled   : " << page.mpage.time_enabled   << std::endl;
+    std::cout << "\ttime running   : " << page.mpage.time_running   << std::endl;
+    std::cout << "\tdata head      : " << page.mpage.data_head      << std::endl;
+    std::cout << "\tdata tail      : " << page.mpage.data_tail      << std::endl;
+    std::cout << "\tdata offset    : " << page.mpage.data_offset    << std::endl;
+    std::cout << "\tdata size      : " << page.mpage.data_size      << std::endl;
+    std::cout                                                       << std::endl;
 }
 
-void PerfProfilerSampling::ringBufferCopyGet_(
-    const struct perf_event_mmap_page *mpage,
-    const size_t                       bytes,
-    void                              *dest)
+void PerfProfilerSampling::samplePrint_(const PerfEvent::RecordSample& sample)
 {
-    if (mpage == nullptr)
-        throw std::string("Error");
+    if (sample.header.type != PERF_RECORD_SAMPLE)
+        return;
 
-    if (dest == nullptr)
-        throw std::string("Error");
-
-    uintptr_t base     = ((uintptr_t)mpage) + mpage->data_offset;
-    size_t start_index = mpage->data_head - bytes;
-    size_t end_index   = start_index + bytes;
-
-    if (end_index <= mpage->data_size)
-    {
-        ::memcpy(dest, ((void *)(base + start_index)), bytes);
-    }
-}
-
-void PerfProfilerSampling::ringBufferDataPrint_(const struct perf_event_mmap_page *mpage)
-{
-    if (mpage == nullptr)
-        throw std::string("Error");
-
-    uint8_t buf[4096] = { 0 };
-
-    PerfProfilerSampling::ringBufferCopyGet_(mpage, sizeof(perf_record_sample_t), buf);
-
-    PerfProfilerSampling::samplePrint_(buf);
-}
-
-void PerfProfilerSampling::samplePrint_(const void *buffer)
-{
-    if (buffer == nullptr)
-        throw std::string("Error");
-
-    perf_record_sample_t *sample = (perf_record_sample_t *)buffer;
-
-    if (sample->header.type == PERF_RECORD_SAMPLE)
-    {
-        printf("Sample's header:\n");
-        printf("\ttype : PERF_RECORD_SAMPLE\n");
-        printf("\tmisc : %d\n",   sample->header.misc);
-        printf("\tsize : %d\n",   sample->header.size);
-        printf("\n");
-
-        printf("Sample's data:\n");
-        printf("\ttid  : %d\n",   sample->tid);
-        printf("\tpid  : %d\n",   sample->pid);
-        printf("\tip   : 0x%lx\n", sample->ip);
-        printf("\n");
-    }
+    std::cout << "Sample's header:"                << std::endl;
+    std::cout << "\ttype : PERF_RECORD_SAMPLE"     << std::endl;
+    std::cout << "\tmisc : " << sample.header.misc << std::endl;
+    std::cout << "\tsize : " << sample.header.size << std::endl;
+    std::cout                                      << std::endl;
+    std::cout << "Sample's data:"                  << std::endl;
+    std::cout << "\ttid  : "   << sample.tid       << std::endl;
+    std::cout << "\tpid  : "   << sample.pid       << std::endl;
+    std::cout << "\tip   : 0x" << sample.ip        << std::endl;
+    std::cout                                      << std::endl;
 }

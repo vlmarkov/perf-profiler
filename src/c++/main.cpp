@@ -21,7 +21,7 @@ void test1(int argc, char **argv)
     {
         std::cerr << "Caught unexpected exception" << std::endl;
         return;
-    }    
+    }
 }
 
 void test2(int argc, char **argv)

@@ -21,8 +21,52 @@ namespace PerfEvent
     void start(int fd, bool isGrouping);
     void stop(int fd, bool isGrouping);
 
-    void mmap(struct perf_event_attr& pe, int fd, void **mmapped);
-    void unmmap(void *mmapped);
+    class RecordPage
+    {
+        public:
+            RecordPage()  = default;
+            ~RecordPage() = default;
 
-    unsigned mmapSize();
+        struct perf_event_mmap_page mpage;
+    };
+
+    class RecordSample
+    {
+        public:
+            RecordSample()  = default;
+            ~RecordSample() = default;
+
+            struct perf_event_header header;
+            uint64_t                 ip;
+            uint32_t                 pid;
+            uint32_t                 tid;
+    };
+
+    class RingBuffer
+    {
+        public:
+            RingBuffer(int fd);
+            ~RingBuffer();
+
+            bool hasData();
+
+            RecordPage   pageGet();
+            RecordSample sampleGet();
+
+        private:
+            struct perf_event_mmap_page* mpage_;
+            size_t prevHead_;
+
+            unsigned mmapSizeGet_();
+    };
+
+    // TODO
+    typedef struct read_format
+    {
+        uint64_t nr;
+        struct {
+            uint64_t value;
+            uint64_t id;
+        } values[];
+    } read_format_t;
 }

@@ -12,7 +12,7 @@
 /*****************************************************************************/
 static void usage(char const *argv0);
 static void fork_and_exec_fail(const char *error);
-static void fork_and_exec(int argc, char const **argv);
+static void fork_and_exec(int argc, char **argv);
 static void exec_child(int argc, char **argv);
 static void exec_parent(const pid_t child_pid);
 
@@ -87,7 +87,7 @@ static void exec_parent(const pid_t child_pid)
 
         if (wait_pid == 0)
         {
-            // Child still running    
+            // Child still running
             if ((mpage->data_head != 0) && (mpage->data_head != prev_head))
             {
                 prev_head = mpage->data_head;
@@ -132,7 +132,7 @@ static void exec_parent(const pid_t child_pid)
 /* - fork and exec child                                                     */
 /* - monitor child by parent (gather samples)                                */
 /*****************************************************************************/
-static void fork_and_exec(int argc, char const **argv)
+static void fork_and_exec(int argc, char **argv)
 {
     pid_t child_pid = 0;
 
@@ -156,7 +156,7 @@ static void fork_and_exec(int argc, char const **argv)
 /* This funtion used to:                                                     */
 /* - run perf-event sampling profiller                                       */
 /*****************************************************************************/
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
     if (argc < 2)
         usage(argv[0]);

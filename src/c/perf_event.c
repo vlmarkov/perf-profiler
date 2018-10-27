@@ -31,13 +31,13 @@ int perf_event_close(const int fd, void *mmapped)
     if (fd < 0)
     {
         fprintf(stderr, "Failed to close perf event, not valid fd\n");
-        return -1;        
+        return -1;
     }
 
     if (close(fd) != 0)
     {
         fprintf(stderr, "Failed to close perf event, error in close()\n");
-        return -1;           
+        return -1;
     }
 
     if (mmapped)
@@ -56,7 +56,7 @@ int perf_event_start(const int fd, const bool grouping)
         fprintf(stderr, "Failed to start perf event, not valid fd\n");
         return -1;
     }
-    
+
     if (ioctl(fd, PERF_EVENT_IOC_RESET, grouping ? PERF_IOC_FLAG_GROUP : 0) == -1)
     {
         fprintf(stderr, "Failed to start perf event: %s", strerror(errno));
@@ -80,7 +80,7 @@ int perf_event_stop(const int fd, const bool grouping)
         fprintf(stderr, "Failed to stop perf event, not valid fd\n");
         return -1;
     }
-    
+
     if (ioctl(fd, PERF_EVENT_IOC_DISABLE, grouping ? PERF_IOC_FLAG_GROUP : 0) == -1)
     {
         fprintf(stderr, "Failed to stop perf event: %s", strerror(errno));
@@ -135,7 +135,7 @@ int perf_event_read_instructions(const int fd, long long *instructions)
     if (read(fd, instructions, sizeof(long long)) != sizeof(long long))
     {
         fprintf(stderr, "Failed to read perf event instructions, error in read()\n");
-        return -1;        
+        return -1;
     }
 
     return 0;

@@ -17,7 +17,7 @@ static void fork_and_exec_fail(const char *error)
 static void fork_and_exec_child(int argc, char **argv)
 {
     fprintf(stderr, "<%s> Invoke\n", __FUNCTION__);
-    
+
     char *args[] = { argv[1], NULL };
     execve(argv[1], args, NULL);
 
@@ -42,7 +42,7 @@ static void fork_and_exec_parent(
                               hw_id);
     if (fd < 0)
         fork_and_exec_fail("Can't perf events init");
-  
+
     if (perf_event_start(fd, true) != 0)
         fork_and_exec_fail("Can't perf event start");
 
@@ -94,7 +94,7 @@ static void fork_and_exec_parent(
 
 static void fork_and_exec(
     int argc,
-    char const *argv[],
+    char **argv,
     const size_t hw_cnt,
     const uint32_t *hw,
     uint64_t *hw_id,
@@ -122,12 +122,12 @@ static void fork_and_exec(
     fprintf(stderr, "<%s> Done\n", __FUNCTION__);
 }
 
-static void usage(char const *argv[])
+static void usage(char **argv)
 {
     fprintf(stderr, "usage: %s <your-test-program>\n", argv[0]);
 }
 
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
     if (argc < 2)
     {
