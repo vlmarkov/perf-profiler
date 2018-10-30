@@ -14,6 +14,6 @@ class PerfProfilerException : public std::exception
         PerfProfilerException(const std::string& err, const int code = 0);
         ~PerfProfilerException() = default;
 
-    virtual const char* what() const noexcept override;
-    const int code() const noexcept;
+        virtual const char* what() const noexcept override;
+        const int code() const noexcept;
 };

@@ -27,7 +27,7 @@ namespace perf_event
             RecordPage()  = default;
             ~RecordPage() = default;
 
-        struct perf_event_mmap_page mpage;
+            struct perf_event_mmap_page mpage;
     };
 
     class RecordSample
@@ -37,13 +37,19 @@ namespace perf_event
             ~RecordSample() = default;
 
             struct perf_event_header header;
-            uint64_t                 ip;
-            uint32_t                 pid;
-            uint32_t                 tid;
+            uint64_t ip;
+            uint32_t pid;
+            uint32_t tid;
     };
 
     class RingBuffer
     {
+        private:
+            struct perf_event_mmap_page* mpage_;
+            size_t prevHead_;
+
+            unsigned mmapSizeGet_();
+
         public:
             RingBuffer(int fd);
             ~RingBuffer();
@@ -52,12 +58,6 @@ namespace perf_event
 
             RecordPage   pageGet();
             RecordSample sampleGet();
-
-        private:
-            struct perf_event_mmap_page* mpage_;
-            size_t prevHead_;
-
-            unsigned mmapSizeGet_();
     };
 
     // TODO

@@ -11,10 +11,10 @@ class IPerfProfiler
 {
     protected:
         virtual ~IPerfProfiler() = default;
-        IPerfProfiler& operator=(const IPerfProfiler&) = delete;   // Do not allow assignment
+        IPerfProfiler& operator=(const IPerfProfiler&) = delete;
 
     public:
-        virtual void run(int argc, char **argv) = 0;               // Pure virtual method
+        virtual void run(int argc, char **argv) = 0;
 
-        static auto createProfiler(IProfilerType type) -> std::shared_ptr<IPerfProfiler>;        // Fabric method
+        static auto createProfiler(IProfilerType type) -> std::shared_ptr<IPerfProfiler>;
 };

@@ -20,6 +20,8 @@ PerfProfilerSampling::PerfProfilerSampling(uint32_t samplePeriod)
     this->pe_.sample_period  = samplePeriod; // Time between samples
     this->pe_.sample_id_all  = 1;
     this->pe_.sample_type    = PERF_SAMPLE_IP | PERF_SAMPLE_TID;
+
+    this->samplesCnt_ = 0;
 }
 
 void PerfProfilerSampling::run(int argc, char **argv)
@@ -55,7 +57,6 @@ void PerfProfilerSampling::executeChild_(int argc, char **argv)
 void PerfProfilerSampling::executeParent_(const pid_t childPid)
 {
     auto status     = 0;
-    auto samplesCnt = 0;
     auto fd         = perf_event::open(this->pe_, childPid, -1, -1, 0);
     auto ringBuffer = perf_event::RingBuffer(fd);
 
@@ -77,15 +78,13 @@ void PerfProfilerSampling::executeParent_(const pid_t childPid)
 
                 PerfProfilerSampling::pagePrint_(page);
                 PerfProfilerSampling::samplePrint_(sample);
-
-                samplesCnt++;
             }
         }
         else if (waitPid == childPid) // Child ended
         {
             if (WIFEXITED(status))
             {
-                std::cout << "Samples gather: " << samplesCnt << std::endl;
+                std::cout << "Samples gather: " << this->samplesCnt_ << std::endl;
                 std::cout << "Child " << childPid << " ended normally" << std::endl;
             }
             else if (WIFSIGNALED(status))
@@ -104,6 +103,8 @@ void PerfProfilerSampling::executeParent_(const pid_t childPid)
     perf_event::stop(fd, true);
 
     perf_event::close(fd);
+
+    PerfProfilerSampling::mapPrint_();
 }
 
 // TODO: move to view module
@@ -142,4 +143,28 @@ void PerfProfilerSampling::samplePrint_(const perf_event::RecordSample& sample)
     std::cout << "\tip   : 0x" << sample.ip        << std::endl;
     std::cout                                      << std::dec;
     std::cout                                      << std::endl;
+
+    // TODO: move to model module
+    auto find = this->map_.find(sample.ip);
+    if (find != this->map_.end())
+        find->second++;
+    else
+        this->map_.insert(std::make_pair(sample.ip, 1));
+
+    this->samplesCnt_++;
+}
+
+// TODO: move to view module
+void PerfProfilerSampling::mapPrint_()
+{
+    std::cout << std::endl;
+    std::cout << "ip\t%"<< std::endl;
+    for (auto i : this->map_)
+    {
+        std::cout << std::hex << "0x" << i.first << std::dec;
+        std::cout << "\t";
+        std::cout << (double)i.second / (double)this->samplesCnt_ * 100.0;
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }
