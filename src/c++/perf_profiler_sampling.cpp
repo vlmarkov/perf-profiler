@@ -1,4 +1,5 @@
 #include "perf_profiler_sampling.hpp"
+#include "perf_profiler_exception.hpp"
 
 #include <iostream>
 
@@ -28,7 +29,8 @@ void PerfProfilerSampling::run(int argc, char **argv)
     switch (childPid = ::fork())
     {
         case -1:
-            throw std::string("fork() failed"); // TODO: class Exception
+            throw PerfProfilerException("Can't create child, fork() failed");
+            break;
 
         case 0:
             executeChild_(argc, argv);
@@ -42,6 +44,7 @@ void PerfProfilerSampling::run(int argc, char **argv)
 
 void PerfProfilerSampling::executeChild_(int argc, char **argv)
 {
+    // TODO: add support for testing programm args
     char *args[] = { argv[1], NULL };
     ::execve(argv[1], args, NULL);
 
@@ -51,20 +54,19 @@ void PerfProfilerSampling::executeChild_(int argc, char **argv)
 
 void PerfProfilerSampling::executeParent_(const pid_t childPid)
 {
-    int status = 0;
-
+    auto status     = 0;
     auto samplesCnt = 0;
-    auto fd         = PerfEvent::open(this->pe_, childPid, -1, -1, 0);
-    auto ringBuffer = PerfEvent::RingBuffer(fd);
+    auto fd         = perf_event::open(this->pe_, childPid, -1, -1, 0);
+    auto ringBuffer = perf_event::RingBuffer(fd);
 
-    PerfEvent::start(fd, true);
+    perf_event::start(fd, true);
 
     while (true)
     {
         pid_t waitPid = ::waitpid(childPid, &status, WNOHANG | WUNTRACED | WCONTINUED);
 
         if (waitPid == -1)
-            throw(std::string("waitpid(), error")); // TODO: class Exception
+            throw PerfProfilerException("::waitpid(), error");
 
         if (waitPid == 0) // Child still running 
         {
@@ -92,19 +94,20 @@ void PerfProfilerSampling::executeParent_(const pid_t childPid)
             }
             else if (WIFSTOPPED(status))
             {
-                std::cerr << "Child " << childPid << " %d has stopped" << std::endl;
+                std::cerr << "Child " << childPid << " has stopped" << std::endl;
             }
 
-            break; // Exit point
+            break; // Root exit point
         }
     }
 
-    PerfEvent::stop(fd, true);
+    perf_event::stop(fd, true);
 
-    PerfEvent::close(fd);
+    perf_event::close(fd);
 }
 
-void PerfProfilerSampling::pagePrint_(const PerfEvent::RecordPage& page)
+// TODO: move to view module
+void PerfProfilerSampling::pagePrint_(const perf_event::RecordPage& page)
 {
     std::cout << "The first metadata mmap page:"                    << std::endl;
     std::cout << "\tversion        : " << page.mpage.version        << std::endl;
@@ -121,7 +124,8 @@ void PerfProfilerSampling::pagePrint_(const PerfEvent::RecordPage& page)
     std::cout                                                       << std::endl;
 }
 
-void PerfProfilerSampling::samplePrint_(const PerfEvent::RecordSample& sample)
+// TODO: move to view module
+void PerfProfilerSampling::samplePrint_(const perf_event::RecordSample& sample)
 {
     if (sample.header.type != PERF_RECORD_SAMPLE)
         return;
@@ -134,6 +138,8 @@ void PerfProfilerSampling::samplePrint_(const PerfEvent::RecordSample& sample)
     std::cout << "Sample's data:"                  << std::endl;
     std::cout << "\ttid  : "   << sample.tid       << std::endl;
     std::cout << "\tpid  : "   << sample.pid       << std::endl;
+    std::cout                                      << std::hex;
     std::cout << "\tip   : 0x" << sample.ip        << std::endl;
+    std::cout                                      << std::dec;
     std::cout                                      << std::endl;
 }

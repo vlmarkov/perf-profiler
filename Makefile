@@ -35,14 +35,15 @@ c-perf-lib: $(SRC_DIR)/c/perf_event.c
 	$(SRC_DIR)/c/perf_event.c -std=gnu99
 
 
-c++-perf-profiler: c++_perf_event c++_perf_profiler c++_perf_profiler_events c++_perf_profiler_sampling
+c++-perf-profiler: c++_perf_event c++_perf_profiler c++_perf_profiler_events c++_perf_profiler_sampling c++_perf_profiler_exception
 	mkdir -p $(BUILD_DIR)
 	g++ -g -Wall -o $(BUILD_DIR)/c++-perf-profiler \
 	$(SRC_DIR)/c++/main.cpp \
 	$(BUILD_DIR)/c++_perf_event.o \
 	$(BUILD_DIR)/c++_perf_profiler.o \
 	$(BUILD_DIR)/c++_perf_profiler_events.o \
-	$(BUILD_DIR)/c++_perf_profiler_sampling.o -std=c++14
+	$(BUILD_DIR)/c++_perf_profiler_sampling.o \
+	$(BUILD_DIR)/c++_perf_profiler_exception.o -std=c++14
 
 c++_perf_event:
 	mkdir -p $(BUILD_DIR)
@@ -64,6 +65,10 @@ c++_perf_profiler_sampling:
 	g++ -g -Wall -c -o $(BUILD_DIR)/c++_perf_profiler_sampling.o \
 	$(SRC_DIR)/c++/perf_profiler_sampling.cpp -std=c++14
 
+c++_perf_profiler_exception:
+	mkdir -p $(BUILD_DIR)
+	g++ -g -Wall -c -o $(BUILD_DIR)/c++_perf_profiler_exception.o \
+	$(SRC_DIR)/c++/perf_profiler_exception.cpp -std=c++14
 
 clean:
 	rm -Rf $(BUILD_DIR)

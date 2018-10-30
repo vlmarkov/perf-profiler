@@ -13,7 +13,7 @@
 
 // This is a wrappers for a 'perf_event_open'
 // See for more details http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-namespace PerfEvent
+namespace perf_event
 {
     int open(struct perf_event_attr& pe, pid_t pid, int cpu, int groupFd, unsigned long flags);
     void close(int fd);

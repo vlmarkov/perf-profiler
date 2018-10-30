@@ -1,62 +1,73 @@
 #include "perf_event.hpp"
+#include "perf_profiler_exception.hpp"
 
 
 // Acquire resources
-int PerfEvent::open(struct perf_event_attr& pe, pid_t pid, int cpu, int groupFd, unsigned long flags)
+int perf_event::open(struct perf_event_attr& pe, pid_t pid, int cpu, int groupFd, unsigned long flags)
 {
     // Glibc does not provide a wrapper for this system call
-    int fd = ::syscall(__NR_perf_event_open, &pe, pid, cpu, groupFd, flags);
+    auto fd = ::syscall(__NR_perf_event_open, &pe, pid, cpu, groupFd, flags);
     if (fd < 0)
-        throw std::string("Failed to open perf event, not valid fd"); // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf_event::open(), not valid fd");
 
     return fd;
 }
 
 // Release resources
-void PerfEvent::close(int fd)
+void perf_event::close(int fd)
 {
     if (fd < 0)
-        throw std::string("Failed to close perf event, not valid fd");  // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf_event::close(), not valid fd");
 
-    if (::close(fd) != 0)
-        throw std::string("Failed to close perf event, error in close()"); // TODO: class Exception
+    auto rc = ::close(fd);
+    if (rc != 0)
+        throw PerfProfilerException(
+            "Failed to close perf_event::close()", rc);
 }
 
 // Start counting events or record sampling
-void PerfEvent::start(int fd, bool isGrouping)
+void perf_event::start(int fd, bool isGrouping)
 {
     if (fd < 0)
-        throw std::string("Failed to start perf event, not valid fd");  // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf_event::start(), not valid fd");
 
     if (::ioctl(fd, PERF_EVENT_IOC_RESET, isGrouping ? PERF_IOC_FLAG_GROUP : 0) == -1)
-        throw std::string("Failed to start perf event: " + std::string(strerror(errno)));  // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf event: " + std::string(strerror(errno)), errno);
 
     if (::ioctl(fd, PERF_EVENT_IOC_ENABLE, isGrouping ? PERF_IOC_FLAG_GROUP : 0) == -1)
-        throw std::string("Failed to start perf event: " + std::string(strerror(errno)));  // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf event::start() " + std::string(strerror(errno)), errno);
 }
 
 // Stop counting events or record sampling
-void PerfEvent::stop(int fd, bool isGrouping)
+void perf_event::stop(int fd, bool isGrouping)
 {
     if (fd < 0)
-        throw std::string("Failed to stop perf event, not valid fd");  // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf_event::stop(), not valid fd");
 
     if (::ioctl(fd, PERF_EVENT_IOC_DISABLE, isGrouping ? PERF_IOC_FLAG_GROUP : 0) == -1)
-        throw std::string("Failed to stop perf event: " + std::string(strerror(errno)));  // TODO: class Exception
+        throw PerfProfilerException(
+            "Failed to perf_event::stop(), " + std::string(strerror(errno)), errno);
 }
 
 
-namespace PerfEvent
+namespace perf_event
 {
     RingBuffer::RingBuffer(int fd)
     {
         if (fd < 0)
-            throw std::string("Failed to mmap perf event, not valid fd"); // TODO: class Exception
+            throw PerfProfilerException(
+                "Failed to mmap perf event, not valid fd");
 
-        void *mmap = ::mmap(NULL, RingBuffer::mmapSizeGet_(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        auto* mmap = ::mmap(NULL, RingBuffer::mmapSizeGet_(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         if (mmap == MAP_FAILED)
-            throw std::string("Failed to mmap perf event file"); // TODO: class Exception
+            throw PerfProfilerException("Failed to RingBuffer::mmap()");
 
         this->mpage_    = static_cast<struct perf_event_mmap_page*>(mmap);
         this->prevHead_ = 0;
@@ -104,7 +115,8 @@ namespace PerfEvent
         }
         else
         {
-            // TODO: is this possible at all?
+            // Is this possible at all?
+            throw PerfProfilerException("Failed to RingBuffer::sampleGet()");
         }
 
         return recordSample;

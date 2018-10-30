@@ -16,8 +16,8 @@ class PerfProfilerSampling : public IPerfProfiler
         void executeChild_(int argc, char **argv);
         void executeParent_(const pid_t childPid);
 
-        void pagePrint_(const PerfEvent::RecordPage& page);
-        void samplePrint_(const PerfEvent::RecordSample& sample);
+        void pagePrint_(const perf_event::RecordPage& page);
+        void samplePrint_(const perf_event::RecordSample& sample);
 
         struct perf_event_attr pe_;
 };

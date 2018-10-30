@@ -1,9 +1,11 @@
 #include <iostream>
+#include <exception>
 
 #include "perf_event.hpp"
 #include "perf_profiler.hpp"
 #include "perf_profiler_events.hpp"
 #include "perf_profiler_sampling.hpp"
+#include "perf_profiler_exception.hpp"
 
 
 void test1(int argc, char **argv)
@@ -13,9 +15,13 @@ void test1(int argc, char **argv)
         auto profiler = IPerfProfiler::createProfiler(IProfilerType::hwInstructions);
         profiler->run(argc, argv);
     }
-    catch (std::string& exception)
+    catch(PerfProfilerException& exception)
     {
-        std::cerr << exception << std::endl;
+        std::cerr << exception.what() << " : " << exception.code() << std::endl;
+    }
+    catch(std::exception& exception)
+    {
+        std::cerr << exception.what() << std::endl;
     }
     catch (...)
     {
@@ -31,9 +37,13 @@ void test2(int argc, char **argv)
         auto profiler = IPerfProfiler::createProfiler(IProfilerType::sampling);
         profiler->run(argc, argv);
     }
-    catch (std::string& exception)
+    catch(PerfProfilerException& exception)
     {
-        std::cerr << exception << std::endl;
+        std::cerr << exception.what() << " : " << exception.code() << std::endl;
+    }
+    catch(std::exception& exception)
+    {
+        std::cerr << exception.what() << std::endl;
     }
     catch (...)
     {
@@ -42,11 +52,22 @@ void test2(int argc, char **argv)
     }
 }
 
+static void usage(char const *argv0)
+{
+    fprintf(stderr, "usage: %s <your-test-program>\n", argv0);
+}
+
 int main(int argc, char **argv)
 {
-    test1(argc, argv);
-
-    test2(argc, argv);
+    if (argc < 2)
+    {
+        usage(argv[0]);
+    }
+    else
+    {
+        test1(argc, argv);
+        test2(argc, argv);
+    }
 
     return 0;
 }

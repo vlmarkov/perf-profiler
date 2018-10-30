@@ -5,8 +5,6 @@
 
 enum class IProfilerType { hwInstructions, sampling };
 
-class IPerfProfiler;
-using smartPtr = std::shared_ptr<IPerfProfiler>;
 
 // This is a interface class
 class IPerfProfiler
@@ -18,5 +16,5 @@ class IPerfProfiler
     public:
         virtual void run(int argc, char **argv) = 0;               // Pure virtual method
 
-        static smartPtr createProfiler(IProfilerType type);        // Fabric method
+        static auto createProfiler(IProfilerType type) -> std::shared_ptr<IPerfProfiler>;        // Fabric method
 };

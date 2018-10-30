@@ -1,4 +1,5 @@
 #include "perf_profiler_events.hpp"
+#include "perf_profiler_exception.hpp"
 
 #include <iostream>
 
@@ -24,7 +25,8 @@ void PerfProfilerEvents::run(int argc, char **argv)
     switch (childPid = ::fork())
     {
         case -1:
-            throw std::string("fork() failed"); // TODO: class Exception
+            throw PerfProfilerException("Can't create child, fork() failed");
+            break;
 
         case 0:
             PerfProfilerEvents::executeChild_(argc, argv);
@@ -38,6 +40,7 @@ void PerfProfilerEvents::run(int argc, char **argv)
 
 void PerfProfilerEvents::executeChild_(int argc, char **argv)
 {
+    // TODO: add support for testing programm args
     char *args[] = { argv[1], NULL };
     ::execve(argv[1], args, NULL);
 
@@ -47,28 +50,24 @@ void PerfProfilerEvents::executeChild_(int argc, char **argv)
 
 void PerfProfilerEvents::executeParent_(const pid_t childPid)
 {
-    int status = 0;
-    auto fd    = PerfEvent::open(this->pe_, childPid, -1, -1, 0);
+    auto status = 0;
+    auto fd     = perf_event::open(this->pe_, childPid, -1, -1, 0);
 
-    PerfEvent::start(fd, true);
+    perf_event::start(fd, true);
 
     while (true)
     {
         auto waitPid = ::waitpid(childPid, &status, WNOHANG | WUNTRACED | WCONTINUED);
 
         if (waitPid == -1)
-            throw(std::string("waitpid(), error")); // TODO: class Exception
+            throw PerfProfilerException("waitpid(), error");
 
-        if (waitPid == 0)
-        {
-            // Child still running
-        }
-        else if (waitPid == childPid)
+        if (waitPid == childPid)
         {
             // Child ended
             if (WIFEXITED(status))
             {
-                std::cout << "Child " << childPid << "  ended normally" << std::endl;
+                std::cout << "Child " << childPid << " ended normally" << std::endl;
             }
             else if (WIFSIGNALED(status))
             {
@@ -76,20 +75,21 @@ void PerfProfilerEvents::executeParent_(const pid_t childPid)
             }
             else if (WIFSTOPPED(status))
             {
-                std::cerr << "Child " << childPid << " %d has stopped" << std::endl;
+                std::cerr << "Child " << childPid << " has stopped" << std::endl;
             }
 
-            break;
+            break; // Root exit point
         }
     }
 
-    PerfEvent::stop(fd, true);
+    perf_event::stop(fd, true);
 
     {
-        long long count;
+        // TODO: move to view module
+        long long count = 0;
         ::read(fd, &count, sizeof(long long));
-        printf("Used %lld instructions\n", count);
+        std::cout << "Used " << count << " instructions" << std::endl;
     }
 
-    PerfEvent::close(fd);
+    perf_event::close(fd);
 }
