@@ -29,6 +29,7 @@ bool RingBuffer::hasData()
         this->prevHead_ = this->mpage_->data_head;
         return true;
     }
+
     return false;
 }
 

@@ -9,8 +9,6 @@
 
 PerfProfilerEvents::PerfProfilerEvents()
 {
-    std::cout << __FUNCTION__ << " Invoke" << std::endl;
-
     ::memset(&this->pe_, 0, sizeof(struct perf_event_attr));
 
     this->pe_.type           = PERF_TYPE_HARDWARE;
@@ -19,8 +17,6 @@ PerfProfilerEvents::PerfProfilerEvents()
     this->pe_.disabled       = 1;
     this->pe_.exclude_kernel = 1;
     this->pe_.exclude_hv     = 1;
-
-    std::cout << __FUNCTION__ << " Done" << std::endl;
 }
 
 PerfProfilerEvents::PerfProfilerEvents(std::vector<uint32_t>& hw) : hw_(hw)

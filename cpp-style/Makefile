@@ -8,33 +8,18 @@ BUILDDIR  := build
 
 all: profiler tests
 
-profiler: perf-event perf-profiler perf-profiler-events perf-profiler-sampling perf-exception perf-utils
+profiler: perf-event perf-exception perf-utils perf-profiler-factory perf-profiler-events perf-profiler-sampling
 	@echo " Building $@..."
 	@mkdir -p $(BUILDDIR);
 	$(CC) $(CFLAGS) $(INC) -o $(BUILDDIR)/$@ $(SRCDIR)/main.cpp \
 	$(BUILDDIR)/perf-event.o \
-	$(BUILDDIR)/perf-profiler.o \
-	$(BUILDDIR)/perf-profiler-events.o \
-	$(BUILDDIR)/perf-profiler-sampling.o \
 	$(BUILDDIR)/perf-exception.o \
-	$(BUILDDIR)/perf-utils.o
+	$(BUILDDIR)/perf-utils.o \
+	$(BUILDDIR)/perf-profiler-factory.o \
+	$(BUILDDIR)/perf-profiler-events.o \
+	$(BUILDDIR)/perf-profiler-sampling.o
 
-perf-event: perf-profiler 
-	@echo " Building $@..."
-	@mkdir -p $(BUILDDIR);
-	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
-
-perf-profiler:
-	@echo " Building $@..."
-	@mkdir -p $(BUILDDIR);
-	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
-
-perf-profiler-events:
-	@echo " Building $@..."
-	@mkdir -p $(BUILDDIR);
-	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
-
-perf-profiler-sampling:
+perf-event:
 	@echo " Building $@..."
 	@mkdir -p $(BUILDDIR);
 	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
@@ -45,6 +30,21 @@ perf-exception:
 	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
 
 perf-utils:
+	@echo " Building $@..."
+	@mkdir -p $(BUILDDIR);
+	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
+
+perf-profiler-factory:
+	@echo " Building $@..."
+	@mkdir -p $(BUILDDIR);
+	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
+
+perf-profiler-events:
+	@echo " Building $@..."
+	@mkdir -p $(BUILDDIR);
+	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp
+
+perf-profiler-sampling:
 	@echo " Building $@..."
 	@mkdir -p $(BUILDDIR);
 	$(CC) $(CFLAGS) $(INC) -c -o $(BUILDDIR)/$@.o $(SRCDIR)/$@.cpp

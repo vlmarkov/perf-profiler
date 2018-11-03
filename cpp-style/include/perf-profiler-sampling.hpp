@@ -2,12 +2,12 @@
 
 #include <map>
 
+#include <profiler.hpp>
 #include <perf-event.hpp>
 #include <perf-utils.hpp>
-#include <perf-profiler.hpp>
 
 
-class PerfProfilerSampling : public IPerfProfiler
+class PerfProfilerSampling : public IProfiler
 {
     public:
         explicit PerfProfilerSampling(uint32_t samplePeriod = 100000);

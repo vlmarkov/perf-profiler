@@ -2,11 +2,11 @@
 
 #include <vector>
 
+#include <profiler.hpp>
 #include <perf-event.hpp>
-#include <perf-profiler.hpp>
 
 
-class PerfProfilerEvents : public IPerfProfiler
+class PerfProfilerEvents : public IProfiler
 {
     public:
         explicit PerfProfilerEvents();
@@ -16,7 +16,6 @@ class PerfProfilerEvents : public IPerfProfiler
         void run(int argc, char **argv) override;
 
     private:
-        
         std::vector<uint32_t> hw_;
         std::vector<uint64_t> hw_id_;
         std::vector<uint64_t> hw_val_;
