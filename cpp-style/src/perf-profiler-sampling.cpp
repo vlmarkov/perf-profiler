@@ -39,11 +39,11 @@ void PerfProfilerSampling::run(int argc, char **argv)
                 break;
 
             case 0:
-                executeChild_(argc, argv);
+                PerfProfilerSampling::runTest_(argc, argv);
                 break;
 
             default: 
-                executeParent_(childPid);
+                PerfProfilerSampling::runMonitor_(childPid);
                 break;
         }
     }
@@ -61,7 +61,7 @@ void PerfProfilerSampling::run(int argc, char **argv)
     }
 }
 
-void PerfProfilerSampling::executeChild_(int argc, char **argv)
+void PerfProfilerSampling::runTest_(int argc, char **argv)
 {
     // TODO: add support for testing programm args
     char *args[] = { argv[1], NULL };
@@ -71,7 +71,7 @@ void PerfProfilerSampling::executeChild_(int argc, char **argv)
     ::_exit(EXIT_SUCCESS);
 }
 
-void PerfProfilerSampling::executeParent_(const pid_t childPid)
+void PerfProfilerSampling::runMonitor_(const pid_t childPid)
 {
     auto status     = 0;
 

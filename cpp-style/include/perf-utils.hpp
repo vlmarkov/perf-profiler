@@ -34,12 +34,11 @@ struct RecordSample
     uint32_t tid;
 };
 
-// TODO
-typedef struct ReadFormat
+struct ReadFormat
 {
     uint64_t nr;
     struct {
         uint64_t value;
         uint64_t id;
     } values[];
-} read_format_t;
+};

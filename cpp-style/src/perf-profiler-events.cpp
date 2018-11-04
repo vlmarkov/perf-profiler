@@ -48,11 +48,11 @@ void PerfProfilerEvents::run(int argc, char **argv)
                 break;
 
             case 0:
-                PerfProfilerEvents::executeChild_(argc, argv);
+                PerfProfilerEvents::runTest_(argc, argv);
                 break;
 
             default: 
-                PerfProfilerEvents::executeParent_(childPid);
+                PerfProfilerEvents::runMonitor_(childPid);
                 break;
         }
     }
@@ -70,7 +70,7 @@ void PerfProfilerEvents::run(int argc, char **argv)
     }
 }
 
-void PerfProfilerEvents::executeChild_(int argc, char **argv)
+void PerfProfilerEvents::runTest_(int argc, char **argv)
 {
     // TODO: add support for testing programm args
     char *args[] = { argv[1], NULL };
@@ -80,7 +80,7 @@ void PerfProfilerEvents::executeChild_(int argc, char **argv)
     ::_exit(EXIT_SUCCESS);
 }
 
-void PerfProfilerEvents::executeParent_(const pid_t childPid)
+void PerfProfilerEvents::runMonitor_(const pid_t childPid)
 {
     auto status = 0;
     auto perfEvent = PerfEvent(this->pe_, childPid, this->hw_, this->hw_id_);
@@ -119,7 +119,7 @@ void PerfProfilerEvents::executeParent_(const pid_t childPid)
     {
         // TODO: move to view module
         char buf[4096] = { 0 };
-        read_format_t *rf = (read_format_t *)buf;
+        struct ReadFormat *rf = (struct ReadFormat *)buf;
 
         ::read(perfEvent.getFd(), buf, sizeof(buf));
 

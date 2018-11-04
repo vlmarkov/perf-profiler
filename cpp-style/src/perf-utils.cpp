@@ -19,6 +19,7 @@ RingBuffer::RingBuffer(const int fd)
 RingBuffer::~RingBuffer()
 {
     ::munmap(static_cast<void*>(this->mpage_), RingBuffer::mmapSizeGet_());
+    // Do not propagate exception
 }
 
 bool RingBuffer::hasData()

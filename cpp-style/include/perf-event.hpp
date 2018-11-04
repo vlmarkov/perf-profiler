@@ -30,13 +30,6 @@ class PerfEvent
         int fd_;
         int isGrouping_;
 
-        int groupInit_(
-            struct perf_event_attr& pe,
-            uint32_t          config,
-            pid_t             pid,
-            int               groupFd,
-            uint64_t         *id);
-
-        int open_(struct perf_event_attr& pe, pid_t pid, int cpu, int groupFd, unsigned long flags);
+        int open_(struct perf_event_attr& pe, pid_t pid, int cpu, int gFd, unsigned long flags);
         void close_();
 };

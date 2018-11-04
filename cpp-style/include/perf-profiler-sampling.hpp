@@ -24,8 +24,8 @@ class PerfProfilerSampling : public IProfiler
 
         void mapPrint_();
 
-        void executeChild_(int argc, char **argv);
-        void executeParent_(const pid_t childPid);
+        void runTest_(int argc, char **argv);
+        void runMonitor_(const pid_t childPid);
 
         void pagePrint_(const RecordPage& page);
         void samplePrint_(const RecordSample& sample);

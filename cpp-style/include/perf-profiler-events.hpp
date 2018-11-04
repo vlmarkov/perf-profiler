@@ -22,6 +22,6 @@ class PerfProfilerEvents : public IProfiler
 
         struct perf_event_attr pe_;
 
-        void executeChild_(int argc, char **argv);
-        void executeParent_(const pid_t childPid);
+        void runTest_(int argc, char **argv);
+        void runMonitor_(const pid_t childPid);
 };

@@ -13,5 +13,5 @@ const char* Exception::what() const noexcept
 
 const int Exception::code() const noexcept
 {
-        return code_;
+    return code_;
 }

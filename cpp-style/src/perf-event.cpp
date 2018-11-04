@@ -6,23 +6,39 @@
 
 PerfEvent::PerfEvent(struct perf_event_attr& pe, pid_t pid)
 {
-    this->fd_         = this->open_(pe, pid, -1, -1, 0);
     this->isGrouping_ = false;
+    this->fd_         = this->open_(pe, pid, -1, -1, 0);
 }
 
 PerfEvent::PerfEvent(struct perf_event_attr& pe, pid_t pid, std::vector<uint32_t>& events, std::vector<uint64_t>& ids)
 {
-    this->fd_ = this->groupInit_(pe, events[0], pid, -1, &ids[0]);
-
-    for (size_t i = 1; i < events.size(); i++)
-        this->groupInit_(pe,  events[i], pid, this->fd_, &ids[i]);
-
     this->isGrouping_ = true;
+
+    for (size_t i = 0; i < events.size(); i++)
+    {
+        pe.config = events[i];
+        auto fd = this->open_(pe, pid, -1, (i == 0) ? -1 : this->fd_, 0);
+
+        if (i == 0)
+        {
+            this->fd_ = fd;
+        }
+
+        if (::ioctl(fd, PERF_EVENT_IOC_ID, &ids[i]) == -1)
+            throw Exception("Failed to perf event: " + std::string(strerror(errno)), errno);
+    }
 }
 
 PerfEvent::~PerfEvent()
 {
-    this->close_();
+    try
+    {
+        this->close_();
+    }
+    catch (...)
+    {
+        ; // Do nothing
+    }
 }
 
 // Start counting events or record sampling
@@ -47,26 +63,10 @@ int PerfEvent::getFd()
     return this->fd_;
 }
 
-int PerfEvent::groupInit_(
-    struct perf_event_attr& pe,
-    uint32_t          config,
-    pid_t             pid,
-    int               groupFd,
-    uint64_t         *id)
-{
-    pe.config = config;
-    int fd = this->open_(pe, pid, -1, groupFd, 0);
-
-    if (::ioctl(fd, PERF_EVENT_IOC_ID, id) == -1)
-        throw Exception("Failed to perf event: " + std::string(strerror(errno)), errno);
-
-    return fd;
-}
-
-int PerfEvent::open_(struct perf_event_attr& pe, pid_t pid, int cpu, int groupFd, unsigned long flags)
+int PerfEvent::open_(struct perf_event_attr& pe, pid_t pid, int cpu, int gFd, unsigned long flags)
 {
     // Glibc does not provide a wrapper for this system call
-    auto fd = ::syscall(__NR_perf_event_open, &pe, pid, cpu, groupFd, flags);
+    auto fd = ::syscall(__NR_perf_event_open, &pe, pid, cpu, gFd, flags);
     if (fd < 0)
         throw Exception(std::string("Failed to perf_event_open(), not valid fd"));
 
