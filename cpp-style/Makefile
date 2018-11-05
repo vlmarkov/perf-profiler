@@ -17,7 +17,8 @@ profiler: perf-event perf-exception perf-utils perf-profiler-factory perf-profil
 	$(BUILDDIR)/perf-utils.o \
 	$(BUILDDIR)/perf-profiler-factory.o \
 	$(BUILDDIR)/perf-profiler-events.o \
-	$(BUILDDIR)/perf-profiler-sampling.o
+	$(BUILDDIR)/perf-profiler-sampling.o \
+	-lpthread -lboost_system
 
 perf-event:
 	@echo " Building $@..."

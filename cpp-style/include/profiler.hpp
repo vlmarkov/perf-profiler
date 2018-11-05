@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 
 // This is a interface class
 class IProfiler
@@ -9,5 +11,5 @@ class IProfiler
         IProfiler& operator=(const IProfiler&) = delete;
 
     public:
-        virtual void run(int argc, char **argv) = 0;
+        virtual void run(std::string& args) = 0;
 };

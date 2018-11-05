@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include <profiler.hpp>
 #include <perf-event.hpp>
@@ -13,15 +14,12 @@ class PerfProfilerEvents : public IProfiler
         explicit PerfProfilerEvents(std::vector<uint32_t>& hw);
         ~PerfProfilerEvents() = default;
 
-        void run(int argc, char **argv) override;
+        void run(std::string& args) override;
 
     private:
-        std::vector<uint32_t> hw_;
-        std::vector<uint64_t> hw_id_;
-        std::vector<uint64_t> hw_val_;
+        std::vector<uint32_t> hw_;     // Group hw request
+        std::vector<uint64_t> hw_id_;  // Group hw request-id
+        std::vector<uint64_t> hw_val_; // Group hw request-value
 
         struct perf_event_attr pe_;
-
-        void runTest_(int argc, char **argv);
-        void runMonitor_(const pid_t childPid);
 };

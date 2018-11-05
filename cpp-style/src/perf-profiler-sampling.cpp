@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <functional>
 
+#include <boost/process.hpp>
+
 #include <sys/wait.h>
 
 #include <perf-exception.hpp>
@@ -26,26 +28,39 @@ PerfProfilerSampling::PerfProfilerSampling(uint32_t samplePeriod)
     this->samplesCnt_ = 0;
 }
 
-void PerfProfilerSampling::run(int argc, char **argv)
+void PerfProfilerSampling::run(std::string& args)
 {
-    pid_t childPid = 0;
-
     try
     {
-        switch (childPid = ::fork())
+        boost::process::child c(args);
+
+        auto perfEvent  = PerfEvent(this->pe_, c.id());
+        auto ringBuffer = RingBuffer(perfEvent.getFd());
+
+        perfEvent.start();
+
+        while (c.running())
         {
-            case -1:
-                throw Exception("Can't create child, fork() failed");
-                break;
+            if (ringBuffer.hasData())
+            {
+                //auto page   = ringBuffer.pageGet();
+                auto sample = ringBuffer.sampleGet();
 
-            case 0:
-                PerfProfilerSampling::runTest_(argc, argv);
-                break;
-
-            default: 
-                PerfProfilerSampling::runMonitor_(childPid);
-                break;
+                //PerfProfilerSampling::pagePrint_(page);
+                //PerfProfilerSampling::samplePrint_(sample);
+                PerfProfilerSampling::sampleCopy_(sample);
+            }
         }
+
+        c.wait();
+
+        std::cout << "Samples gather: " << this->samplesCnt_ << std::endl;
+        std::cout << "Child " << c.id()
+                  << " ended with code " << c.exit_code() << std::endl;
+
+        perfEvent.stop();
+
+        PerfProfilerSampling::mapPrint_();
     }
     catch (Exception& exception)
     {
@@ -59,69 +74,6 @@ void PerfProfilerSampling::run(int argc, char **argv)
     {
         std::cerr << "Caught unexpected exception" << std::endl;
     }
-}
-
-void PerfProfilerSampling::runTest_(int argc, char **argv)
-{
-    // TODO: add support for testing programm args
-    char *args[] = { argv[1], NULL };
-    ::execve(argv[1], args, NULL);
-
-    // Never reach
-    ::_exit(EXIT_SUCCESS);
-}
-
-void PerfProfilerSampling::runMonitor_(const pid_t childPid)
-{
-    auto status     = 0;
-
-    auto perfEvent  = PerfEvent(this->pe_, childPid);
-    auto ringBuffer = RingBuffer(perfEvent.getFd());
-
-    perfEvent.start();
-
-    while (true)
-    {
-        pid_t waitPid = ::waitpid(childPid, &status, WNOHANG | WUNTRACED | WCONTINUED);
-
-        if (waitPid == -1)
-            throw Exception("::waitpid(), error");
-
-        if (waitPid == 0) // Child still running 
-        {
-            if (ringBuffer.hasData())
-            {
-                //auto page   = ringBuffer.pageGet();
-                auto sample = ringBuffer.sampleGet();
-
-                //PerfProfilerSampling::pagePrint_(page);
-                //PerfProfilerSampling::samplePrint_(sample);
-                PerfProfilerSampling::sampleCopy_(sample);
-            }
-        }
-        else if (waitPid == childPid) // Child ended
-        {
-            if (WIFEXITED(status))
-            {
-                std::cout << "Samples gather: " << this->samplesCnt_ << std::endl;
-                std::cout << "Child " << childPid << " ended normally" << std::endl;
-            }
-            else if (WIFSIGNALED(status))
-            {
-                throw Exception("Child " + std::to_string(childPid) + " ended because of an uncaught signal");
-            }
-            else if (WIFSTOPPED(status))
-            {
-                throw Exception("Child " + std::to_string(childPid) + " has stopped");
-            }
-
-            break; // Root exit point
-        }
-    }
-
-    perfEvent.stop();
-
-    PerfProfilerSampling::mapPrint_();
 }
 
 // TODO: move to view module
@@ -181,7 +133,7 @@ void PerfProfilerSampling::sampleCopy_(const RecordSample& sample)
 void PerfProfilerSampling::mapPrint_()
 {
     std::cout << std::endl;
-    std::cout << "ip\t%"<< std::endl;
+    std::cout << "ip\t\t%"<< std::endl;
     for (auto i : this->map_)
     {
         std::cout << std::hex << "0x" << i.first << std::dec;
